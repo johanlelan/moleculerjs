@@ -1,0 +1,55 @@
+{
+  // Utilisez IntelliSense pour en savoir plus sur les attributs possibles.
+  // Pointez pour afficher la description des attributs existants.
+  // Pour plus d'informations, visitez : https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Client - Launch Program",
+      "program": "${workspaceFolder}/client/client.js"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Search - Launch Program",
+      "program": "${workspaceFolder}/search/service.js",
+			"cwd": "${workspaceFolder}/search"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Entity - Launch Program",
+      "program": "${workspaceFolder}/entity/service.js",
+			"cwd": "${workspaceFolder}/entity"
+    },
+    {
+			"type": "node",
+			"request": "launch",
+			"name": "Gateway - Moleculer-runner",
+			"program": "${workspaceFolder}/gateway/node_modules/moleculer/bin/moleculer-runner",
+      "cwd": "${workspaceFolder}/gateway",
+      "args": [
+        "--hot",
+        "services"
+      ]
+		},
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Mocha Tests (moleculerJS)",
+      "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
+      "args": [
+        "-u",
+        "tdd",
+        "--exit",
+        "--timeout",
+        "999999",
+        "--colors",
+        "${workspaceFolder}/**.spec.js",
+      ],
+      "internalConsoleOptions": "openOnSessionStart"
+    }
+  ]
+}
