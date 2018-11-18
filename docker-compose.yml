@@ -6,16 +6,22 @@ services:
     ports:
       - "6379:6379"
     restart: on-failure
-#  kafka:
-#    image: spotify/kafka
-#    hostname: kafka
-#    extra_hosts:
-#      - "moby:127.0.0.1"
-#    environment:
-#      ADVERTISED_HOST: 192.168.1.41
-#      TOPICS: items,search
-#      ADVERTISED_PORT: 9092
-#    ports:
-#      - "9092:9092"
-#      - "2181:2181"
-#    restart: on-failure
+  kafka:
+    image: spotify/kafka
+    hostname: kafka
+    extra_hosts:
+      - "moby:127.0.0.1"
+    environment:
+      ADVERTISED_HOST: 192.168.1.41
+      ADVERTISED_PORT: 9092
+    ports:
+      - "9092:9092"
+      - "2181:2181"
+    restart: on-failure
+  nats:
+    image: nats-streaming
+    hostname: nats
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    restart: on-failure

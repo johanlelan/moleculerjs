@@ -1,8 +1,5 @@
 "use strict";
 
-const KafkaStreamsTransporter = require("./kafka-stream.transporter");
-const optionsBuilder = require("./kafka.options");
-
 // More info about options: https://moleculer.services/docs/0.13/broker.html#Broker-options
 module.exports = {
 	namespace: "mol",
@@ -13,8 +10,7 @@ module.exports = {
 	logFormatter: "default",
 	logObjectPrinter: null,
 
-	//transporter: new KafkaStreamsTransporter(optionsBuilder()),
-	transporter: "Redis",
+	transporter: "Nats",
 
 	cacher: "Memory",
 

@@ -1,8 +1,4 @@
-const { ServiceBroker } = require("moleculer");
-
-const broker = new ServiceBroker(require("./moleculer.config"));
-
-broker.createService({
+module.exports = {
 	name: "search",
 	events: {
 		"entity.created"(payload) {
@@ -29,8 +25,7 @@ broker.createService({
 			return { sample: true, from: "search", id: identifier };
 		},
 	},
-});
-
-broker.start()
-	.then(() => broker.logger.info("Search service is ready"))
-	.catch(err => broker.logger.error(`Error occured! ${err.message}`));
+	started() {
+		this.logger.info("Search service is ready");
+	},
+};

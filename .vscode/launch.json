@@ -18,12 +18,15 @@
 			"cwd": "${workspaceFolder}/search"
     },
     {
-      "type": "node",
-      "request": "launch",
-      "name": "Entity - Launch Program",
-      "program": "${workspaceFolder}/entity/service.js",
-			"cwd": "${workspaceFolder}/entity"
-    },
+			"type": "node",
+			"request": "launch",
+			"name": "Entity - Moleculer-runner",
+			"program": "${workspaceFolder}/entity/node_modules/moleculer/bin/moleculer-runner",
+      "cwd": "${workspaceFolder}/entity",
+      "args": [
+        "service.js"
+      ]
+		},
     {
 			"type": "node",
 			"request": "launch",

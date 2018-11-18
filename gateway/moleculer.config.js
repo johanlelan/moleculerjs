@@ -10,7 +10,7 @@ module.exports = {
 	logFormatter: "default",
 	logObjectPrinter: null,
 
-	transporter: "Redis",
+	transporter: "Nats",
 
 	cacher: "Memory",
 

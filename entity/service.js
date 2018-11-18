@@ -1,9 +1,5 @@
 const { applyPatch } = require("fast-json-patch");
-const { ServiceBroker } = require("moleculer");
-
-const broker = new ServiceBroker(require("./moleculer.config"));
-
-broker.createService({
+module.exports = {
 	name: "entity",
 	events: {
 		"entity.creation.needed"(payload) {
@@ -50,9 +46,8 @@ broker.createService({
 			newItem.from = "entity";
 			return newItem;
 		}
-	}
-});
-
-broker.start()
-	.then(() => broker.logger.info("Entity service is ready"))
-	.catch(err => broker.logger.error(`Error occured! ${err.message}`));
+	},
+	started() {
+		this.logger.info("Entity service is ready");
+	},
+};

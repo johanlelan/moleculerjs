@@ -22,9 +22,9 @@
   },
   "dependencies": {
     "ioredis": "^4.2.0",
-    "kafka-node": "2.6.1",
-    "kafka-streams": "^4.7.0",
-    "moleculer": "^0.13.0"
+    "kafka-node": "^2.6.1",
+    "moleculer": "^0.13.0",
+    "nats": "^1.0.1"
   },
   "engines": {
     "node": ">= 8.x.x"

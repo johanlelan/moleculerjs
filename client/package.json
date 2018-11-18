@@ -5,7 +5,9 @@
   "main": "client.js",
   "dependencies": {
     "ioredis": "^4.2.0",
-    "moleculer": "^0.13.4"
+    "kafka-node": "^3.0.1",
+    "moleculer": "^0.13.4",
+    "nats": "^1.0.1"
   },
   "devDependencies": {},
   "scripts": {
