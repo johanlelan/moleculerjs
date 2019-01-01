@@ -25,6 +25,6 @@ broker.createService({
 broker.start()
     .then(() => broker.waitForServices("entity"))
     // Call service
-    .then(() => broker.broadcast("entity.creation.needed", item))
+    .then(() => broker.broadcast("entity.requested", item))
     .then(() => broker.logger.info("Item have been created"))
     .catch(err => broker.logger.error(`Error occured! ${err.message}`));

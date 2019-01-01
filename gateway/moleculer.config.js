@@ -10,7 +10,7 @@ module.exports = {
 	logFormatter: "default",
 	logObjectPrinter: null,
 
-	transporter: "Nats",
+	transporter: process.env.TRANSPORT_URL || "Nats",
 
 	cacher: "Memory",
 
@@ -31,7 +31,7 @@ module.exports = {
 	heartbeatTimeout: 15,
 
 	tracking: {
-		enabled: false,
+		enabled: true,
 		shutdownTimeout: 5000,
 	},
 
@@ -73,10 +73,10 @@ module.exports = {
 
 	// Called after broker created.
 	created(broker) {
-		
+    
 	},
 
-	// Called after broker starte.
+	// Called after broker started.
 	started(broker) {
 
 	},

@@ -1,23 +1,5 @@
 version: '3'
 services:
-  redis:
-    image: redis:alpine
-    hostname: redis
-    ports:
-      - "6379:6379"
-    restart: on-failure
-  kafka:
-    image: spotify/kafka
-    hostname: kafka
-    extra_hosts:
-      - "moby:127.0.0.1"
-    environment:
-      ADVERTISED_HOST: 192.168.1.41
-      ADVERTISED_PORT: 9092
-    ports:
-      - "9092:9092"
-      - "2181:2181"
-    restart: on-failure
   nats:
     image: nats-streaming
     hostname: nats
@@ -25,3 +7,21 @@ services:
       - "4222:4222"
       - "8222:8222"
     restart: on-failure
+  gateway:
+    build: gateway
+    environment:
+      - TRANSPORT_URL=nats://nats:4222
+    ports:
+      - "3000:3000"
+  db:
+    build: db
+    environment:
+      - TRANSPORT_URL=nats://nats:4222
+  search:
+    build: search
+    environment:
+      - TRANSPORT_URL=nats://nats:4222
+  entity:
+    build: domain-entity
+    environment:
+      - TRANSPORT_URL=nats://nats:4222

@@ -3,7 +3,7 @@
 // More info about options: https://moleculer.services/docs/0.13/broker.html#Broker-options
 module.exports = {
 	namespace: "mol",
-	nodeID: "search",
+	nodeID: "user",
 
 	logger: true,
 	logLevel: "info",
@@ -31,7 +31,7 @@ module.exports = {
 	heartbeatTimeout: 15,
 
 	tracking: {
-		enabled: true,
+		enabled: false,
 		shutdownTimeout: 5000,
 	},
 

@@ -1,28 +1,100 @@
+const documents = {};
+const users = {};
+const connectedUsers = {};
+
+const getCollection = (type) => {
+	switch(type) {
+		case "user":
+			return users;
+		default:
+			return documents;
+	}
+};
+
 module.exports = {
 	name: "search",
 	events: {
 		"entity.created"(payload) {
-			this.logger.info({ notice: "Index an item into search engine", payload });
-			this.broker.broadcast("search.updated", payload);
+			documents[payload.id] = payload;
+			this.logger.info({ notice: "Index item", payload });
+			this.broker.broadcast("search.indexed", payload);
+		},
+		"entity.removed"(payload) {
+			const document = documents[payload.id];
+			if (document) {
+				document.active = false;
+				this.logger.info({ notice: "Unindex item", id: payload.id });
+				this.broker.broadcast("search.unindexed", payload.id);
+			}
+		},
+		"entity.patched"({ id, entity }) {
+			documents[id] = entity;
+			this.logger.info({ notice: "Index item", document: entity });
+			this.broker.broadcast("search.indexed", entity);
+		},
+		"user.connected"(user) {
+			const jwtFragments = user.token.split(".");
+			if (jwtFragments.length === 3) {
+				const payload = JSON.parse(new Buffer(jwtFragments[1], "base64").toString("utf-8"));
+				const time = payload.exp * 1000 - (new Date()).getTime();
+				user.expire = () => setTimeout(() => {
+					// remove connected user after jwt expiration period
+					delete connectedUsers[user.username];
+				}, time);
+				connectedUsers[user.username] = user;
+				this.logger.info({ notice: "Index connected user", user });
+				this.broker.broadcast("search.user.connected.indexed", user);
+			}
+		},
+		"user.registered"(user) {
+			users[user.username] = user;
+			this.logger.info({ notice: "Index user", user });
+			this.broker.broadcast("search.user.indexed", user);
+		},
+		"user.removed"(payload) {
+			const user = users[payload.id];
+			if (user) {
+				user.active = false;
+				this.logger.info({ notice: "Unindex user", id: payload.id });
+				this.broker.broadcast("search.user.unindexed", payload.id);
+			}
 		}
 	},
 	actions: {
 		list(ctx) {
 			const payload = ctx.params;
+			const type = ctx.params.type;
+			const collection = getCollection(type);
 			// validate input
 			// filter search engine
-			this.logger.info({ notice: "list all matching items", payload });
-			// emit search.filtered event
-			this.broker.broadcast("search.filtered", payload);
-			return { sample: true, from: "search", total: 27, data: [] };
+			this.logger.info({ notice: `list all matching ${type}`, payload });
+			// emit search.query event
+			this.broker.broadcast("search.query", payload);
+			return { 
+				mode: "memory",
+				from: "search",
+				type,
+				total: Object.keys(collection).length,
+				data: Object.values(collection).filter(item => item.active !== false)
+			};
 		},
 		get(ctx) {
-			const identifier = ctx.params.id;
+			const id = ctx.params.id;
+			const type = ctx.params.type;
 			// get from search engine by identifier
-			this.logger.info({ notice: "return existing item", identifier });
+			const collection = getCollection(type);
+			const document = collection[id];
+			if (!document) {
+				this.broker.broadcast("search.notFound", id);
+				return null;
+			} else if (!document.active) {
+				this.broker.broadcast("search.gone", document);
+				return document;
+			}
+			this.logger.info({ notice: `get ${type} by id`, identifier: id });
 			// emit search.found event
-			this.broker.broadcast("search.found", identifier);
-			return { sample: true, from: "search", id: identifier };
+			this.broker.broadcast("search.found", document);
+			return { ...document, from: "search" };
 		},
 	},
 	started() {

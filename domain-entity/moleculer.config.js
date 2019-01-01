@@ -3,7 +3,7 @@
 // More info about options: https://moleculer.services/docs/0.13/broker.html#Broker-options
 module.exports = {
 	namespace: "mol",
-	nodeID: "search",
+	nodeID: "entity",
 
 	logger: true,
 	logLevel: "info",
@@ -78,7 +78,7 @@ module.exports = {
 
 	// Called after broker starte.
 	started(broker) {
-
+    
 	},
 
 	// Called after broker stopped.

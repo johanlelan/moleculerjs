@@ -2,38 +2,39 @@
 const toArray = require("lodash.values");
 
 module.exports = {
-	name: "items",
+	name: "users",
 	events: {
-		"entity.*"(payload, sender, event) {
-			console.log(`Event '${event}' received from ${sender} node:`, payload);
-		},
-		"search.*"(payload, sender, event) {
-			console.log(`Event '${event}' received from ${sender} node:`, payload);
-		},
-		"db.*"(payload, sender, event) {
+		"user.*"(payload, sender, event) {
 			console.log(`Event '${event}' received from ${sender} node:`, payload);
 		},
 	},
 	actions: {
-		create(ctx) {
-			return ctx.broker.call("entity.create", ctx.params)
+		login(ctx) {
+			return ctx.broker.call("user.login", ctx.params)
+				.then(res => {
+					ctx.meta.$statusCode = 200;
+					return res;
+				});
+		},
+		register(ctx) {
+			return ctx.broker.call("user.create", ctx.params)
 				.then(res => {
 					ctx.meta.$statusCode = 201;
 					ctx.meta.$responseHeaders = {
-						"Location": `/api/items/${res.id}`,
+						"Location": `/api/users/${res.id}`,
 					};
 					return res;
 				});
 		},
 		list(ctx) {
-			return ctx.broker.call("search.list", ctx.params);
+			return ctx.broker.call("search.list", { ...ctx.params, type: "user" });
 		},
 		get: {
 			params: {
 				id: "string"
 			},
 			handler(ctx) {
-				return ctx.broker.call("search.get", { id: ctx.params.id, type: "items" })
+				return ctx.broker.call("search.get", { id: ctx.params.id, type: "user" })
 					.then(res => {
 						if (!res) {
 							// Not found
@@ -54,14 +55,19 @@ module.exports = {
 				const id = ctx.params.id;
 				delete ctx.params.id;
 				// check if entity exists
-				return this.broker.call("search.get", { id, type: "items" })
-					.then(entity => {
-						if (!entity || entity.active === false) {
+				return this.broker.call("search.get", { id, type: "user" })
+					.then(user => {
+						if (!user) {
+							// Not found
 							ctx.meta.$statusCode = 404;
-							return null;
+							return;
+						} else if (user.active === false) {
+							// Gone
+							ctx.meta.$statusCode = 410;
+							return user;
 						}
 						const patches = toArray(ctx.params);
-						return ctx.broker.call("entity.patch", { id, patches });
+						return this.broker.call("user.update", { user, patches });
 					});
 			}
 		},
@@ -70,7 +76,7 @@ module.exports = {
 				id: "string"
 			},
 			handler(ctx) {
-				return ctx.broker.call("entity.remove", { id: ctx.params.id })
+				return ctx.broker.call("user.remove", { id: ctx.params.id })
 					.then(res => {
 						ctx.meta.$statusCode = 204;
 						return res;

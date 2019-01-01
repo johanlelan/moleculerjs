@@ -8,9 +8,12 @@ module.exports = {
         "jest": true,
         "jasmine": true
     },
-    "extends": "eslint:recommended",
+    "extends": [
+      "eslint:recommended"
+    ],
     "parserOptions": {
-        "sourceType": "module"
+        "sourceType": "module",
+        "ecmaVersion": 2018
     },
     "rules": {
         "indent": [
