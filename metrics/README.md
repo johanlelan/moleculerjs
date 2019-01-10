@@ -1,4 +1,4 @@
-# db
+# metrics
 
 ## Build Setup
 
@@ -26,10 +26,10 @@ npm run lint
 
 **Build Docker image**
 ```bash
-$ docker build -t db .
+$ docker build -t metrics .
 ```
 
 **Start container**
 ```bash
-$ docker run -d db
+$ docker run -d metrics
 ```

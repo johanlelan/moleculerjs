@@ -3,78 +3,92 @@ const toArray = require("lodash.values");
 
 module.exports = {
 	name: "items",
-	events: {
-		"entity.*"(payload, sender, event) {
-			console.log(`Event '${event}' received from ${sender} node:`, payload);
-		},
-		"search.*"(payload, sender, event) {
-			console.log(`Event '${event}' received from ${sender} node:`, payload);
-		},
-		"db.*"(payload, sender, event) {
-			console.log(`Event '${event}' received from ${sender} node:`, payload);
+	openapi: {
+		// https://swagger.io/specification/#componentsObject
+		components: {
+			schemas: {
+				Item: {
+					required: ["title"],
+					type: "object",
+					properties: {
+						title: { type: "string", example: "Test board" },
+						description: { type: "string", example: "Test board description" },
+					}
+				},
+				Items: {
+					type: "array",
+					items: {
+						$ref: "#/components/schemas/Item"
+					}
+				},
+				ItemList: {
+					type: "object",
+					properties: {
+						total: { type: "integer", example: 50 },
+						type: { type: "string", example: "item" },
+						data: {
+							$ref: "#/components/schemas/Items"
+						}
+					}
+				}
+			}
 		},
 	},
 	actions: {
-		create(ctx) {
-			return ctx.broker.call("entity.create", ctx.params)
-				.then(res => {
-					ctx.meta.$statusCode = 201;
-					ctx.meta.$responseHeaders = {
-						"Location": `/api/items/${res.id}`,
-					};
-					return res;
-				});
+		create: {
+			async handler(ctx) {
+				const res = await ctx.broker.call("entity.create", ctx.params);
+				ctx.meta.$statusCode = 201;
+				ctx.meta.$responseHeaders = {
+					"Location": `/api/v1/items/${res._id}`,
+				};
+				return res;
+			}
 		},
 		list(ctx) {
-			return ctx.broker.call("search.list", ctx.params);
+			return ctx.broker.call("search.list", { ...ctx.params, type: "items" });
 		},
 		get: {
 			params: {
 				id: "string"
 			},
-			handler(ctx) {
-				return ctx.broker.call("search.get", { id: ctx.params.id, type: "items" })
-					.then(res => {
-						if (!res) {
-							// Not found
-							ctx.meta.$statusCode = 404;
-						} else if (res.active === false) {
-							// Gone
-							ctx.meta.$statusCode = 410;
-						}
-						return res;
-					});
+			async handler(ctx) {
+				const res = await ctx.broker.call("search.get", { id: ctx.params.id, type: "items" });
+				if (!res) {
+					// Not found
+					ctx.meta.$statusCode = 404;
+				} else if (res._active === false) {
+					// Gone
+					ctx.meta.$statusCode = 410;
+				}
+				return res;
 			}
 		},
 		patch: {
 			params: {
 				id: "string",
 			},
-			handler(ctx) {
+			async handler(ctx) {
 				const id = ctx.params.id;
 				delete ctx.params.id;
 				// check if entity exists
-				return this.broker.call("search.get", { id, type: "items" })
-					.then(entity => {
-						if (!entity || entity.active === false) {
-							ctx.meta.$statusCode = 404;
-							return null;
-						}
-						const patches = toArray(ctx.params);
-						return ctx.broker.call("entity.patch", { id, patches });
-					});
+				const item = await this.broker.call("search.get", { id, type: "items" });
+				if (!item || item._active === false) {
+					ctx.meta.$statusCode = 404;
+					return null;
+				}
+				const patches = toArray(ctx.params);
+				return ctx.broker.call("entity.patch", { id, patches });
 			}
 		},
 		remove: {
 			params: {
 				id: "string"
 			},
-			handler(ctx) {
-				return ctx.broker.call("entity.remove", { id: ctx.params.id })
-					.then(res => {
-						ctx.meta.$statusCode = 204;
-						return res;
-					});
+			async handler(ctx) {
+				const res = await ctx.broker.call("entity.remove", { id: ctx.params.id });
+				ctx.meta.$statusCode = 204;
+				return res;
 			}
 		}
 	}

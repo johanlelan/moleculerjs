@@ -1,10 +1,35 @@
 version: '3'
 services:
-  nats:
-    image: nats-streaming
-    hostname: nats
-    command: ["--store", "file", "--dir", "./data", "--max_msgs", "0", "--max_bytes", "0"]
+  maildev:
+    image: djfarrelly/maildev
     ports:
-      - "4222:4222"
-      - "8222:8222"
-    restart: on-failure
+      - "1080:80"
+      - "1025:25"
+  
+  kafka:
+    image: spotify/kafka
+    hostname: kafka
+    extra_hosts:
+      - "moby:127.0.0.1"
+    environment:
+      ADVERTISED_HOST: 172.16.9.47
+      TOPICS: items,search
+      ADVERTISED_PORT: 9092
+    ports:
+      - "9092:9092"
+      - "2181:2181"
+
+#  nats:
+#    image: nats-streaming
+#    hostname: nats
+#    command: ["--store", "file", "--dir", "./data", "--max_msgs", "0", "--max_bytes", "0"]
+#    ports:
+#      - "4222:4222"
+#      - "8222:8222"
+#    restart: on-failure
+
+volumes:
+  data:
+    driver: local
+  db:
+    driver: local

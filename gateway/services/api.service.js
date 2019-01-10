@@ -1,32 +1,44 @@
 "use strict";
 const pick = require("lodash.pick");
-
 const ApiGateway = require("moleculer-web");
-const { UnAuthorizedError } = ApiGateway.Errors;
 const compression	= require("compression");
+const helmet 			= require("helmet");
+
+const OpenApiMixin 		= require("../mixins/openapi.mixin");
+
+const { UnAuthorizedError } = ApiGateway.Errors;
 
 module.exports = {
 	name: "api",
-	mixins: [ApiGateway],
-
+	mixins: [
+		ApiGateway,
+		OpenApiMixin(),
+	],
 	// More info about settings: https://moleculer.services/docs/0.13/moleculer-web.html
 	settings: {
 		port: process.env.PORT || 3000,
 
+		use: [
+			helmet(),
+		],
+
 		routes: [{
-			path: "/api",
+			path: "/api/v1",
 			authentication: true,
 			authorization: true,
+			etag: true,
 			use: [
 				compression(),
 			],
 			cors: true,
 			bodyParsers: {
 				json: {
-					strict: false
+					strict: false,
+					limit: "1MB",
 				},
 				urlencoded: {
-					extended: false
+					extended: false,
+					limit: "1MB",
 				}
 			},
 			whitelist: [
@@ -36,20 +48,22 @@ module.exports = {
 			mappingPolicy: "restrict",
 			aliases: {
 				// Login
-				"POST /users/login": "users.login",
+				"POST /login": "users.login",
 				// Users
-				"GET /users": "users.list",
 				"POST /users": "users.register",
+				"GET /users": "users.list",
 				"GET /users/:id": "users.get",
 				"PATCH /users/:id": "users.patch",
 				"DELETE /users/:id": "users.remove",
+				// Activate
+				"POST /users/:id/activate": "users.activate",
         
 				// items
-				"GET items": "items.list",
-				"GET items/:id": "items.get",
-				"POST items": "items.create",
-				"PATCH items/:id": "items.patch",
-				"DELETE items/:id": "items.remove"
+				"GET /items": "items.list",
+				"POST /items": "items.create",
+				"PATCH /items/:id": "items.patch",
+				"DELETE /items/:id": "items.remove",
+				"GET /items/:id": "items.get",
 			},
 			callOptions: {
 				timeout: (process.env.NODE_ENV === "production" ? 500 : 5000),
@@ -111,7 +125,7 @@ module.exports = {
 		 * @param {IncomingRequest} req
 		 * @returns {Promise}
 		 */
-		authorize(ctx, route, req) {
+		async authorize(ctx, route, req) {
 			let token;
 			if (req.headers.authorization) {
 				let type = req.headers.authorization.split(" ")[0];
@@ -119,30 +133,26 @@ module.exports = {
 					token = req.headers.authorization.split(" ")[1];
 			}
 
-			return this.Promise.resolve(token)
-				.then(token => {
-					if (token) {
-						// Verify JWT token
-						return ctx.call("users.resolveToken", { token })
-							.then(user => {
-								if (user) {
-									this.logger.info("Authenticated via JWT: ", user.username);
-									// Reduce user fields (it will be transferred to other nodes)
-									ctx.meta.user = pick(user, ["_id", "username", "email", "image"]);
-									ctx.meta.token = token;
-								}
-								return user;
-							})
-							.catch(err => {
-								// Ignored because we continue processing if user is not exist
-								return null;
-							});
+			token = await this.Promise.resolve(token);
+			if (token) {
+				try {
+					// Verify JWT token
+					const user = await ctx.call("users.resolveToken", { token });
+					if (user) {
+						this.logger.info("Authenticated via JWT: ", user.username);
+						// Reduce user fields (it will be transferred to other nodes)
+						ctx.meta.user = pick(user, ["_id", "username", "email", "image"]);
+						ctx.meta.token = token;
 					}
-				})
-				.then(user => {
-					if (req.$endpoint.action.auth == "required" && !user)
+					if (req.$endpoint.action.auth == "required" && !user) {
 						return this.Promise.reject(new UnAuthorizedError());
-				});
+					}
+				}
+				catch(err) {
+					// Ignored because we continue processing if user is not exist
+					return null;
+				}
+			}
 		},
 		/**
 		 * Authenticate the user from request
@@ -154,16 +164,52 @@ module.exports = {
 		 * @returns 
 		 */
 		authenticate(ctx, route, req, res) {
-			let accessToken = req.query["access_token"];
-			if (accessToken) {
-				if (accessToken === "12345") {
-					return Promise.resolve({ id: 1, username: "john.doe", name: "John Doe" });
-				} else {
-					return Promise.reject({ message: "Invalid access_token" });
-				}
-			} else {
-				return Promise.reject({ message: "You must specified an access_token query param" });
+			// TODO implement jwt authentication
+			return Promise.resolve({ id: 1, username: "anonymous", name: "anonymous user" });
+			/*
+      let token;
+
+			// Get JWT token from cookie
+			if (req.headers.cookie) {
+				const cookies = cookie.parse(req.headers.cookie);
+				token = cookies["jwt-token"];
 			}
-		}
+
+			// Get JWT token from Authorization header
+			if (!token) {
+				const auth = req.headers["authorization"];
+				if (auth && auth.startsWith("Bearer "))
+					token = auth.slice(7);
+			}
+
+			ctx.meta.roles = [C.ROLE_EVERYONE];
+
+			if (token) {
+				// Verify JWT token
+				const user = await ctx.call("v1.accounts.resolveToken", { token });
+				if (user) {
+					this.logger.info("User authenticated via JWT.", { username: user.username, email: user.email });
+
+					ctx.meta.roles.push(C.ROLE_AUTHENTICATED);
+					if (Array.isArray(user.roles))
+						ctx.meta.roles.push(...user.roles);
+					ctx.meta.token = token;
+					ctx.meta.userID = user.username;
+					// Reduce user fields (it will be transferred to other nodes)
+					return pick(user, ["email", "username", "firstName", "lastName", "avatar"]);
+				}
+				return null;
+			}
+
+			//return this.Promise.reject(new UnAuthorizedError());
+      */
+		},
+		async signInSocialUser(params, cb) {
+			try {
+				cb(null, await this.broker.call("v1.accounts.socialLogin", params));
+			} catch(err) {
+				cb(err);
+			}
+		},
 	}
 };

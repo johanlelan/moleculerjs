@@ -3,28 +3,59 @@ const toArray = require("lodash.values");
 
 module.exports = {
 	name: "users",
-	events: {
-		"user.*"(payload, sender, event) {
-			console.log(`Event '${event}' received from ${sender} node:`, payload);
+	openapi: {
+		// https://swagger.io/specification/#componentsObject
+		components: {
+			schemas: {
+				User: {
+					required: ["username", "email", "password"],
+					type: "object",
+					properties: {
+						title: { type: "string", example: "Test board" },
+						description: { type: "string", example: "Test board description" },
+						username: { type: "string", min: 2, pattern: /^[a-zA-Z0-9-]+$/ },
+						password: { type: "string", min: 6 },
+						email: { type: "email" },
+						bio: { type: "string", optional: true },
+						image: { type: "string", optional: true },
+					}
+				},
+				Users: {
+					type: "array",
+					items: {
+						$ref: "#/components/schemas/User"
+					}
+				},
+				UserList: {
+					type: "object",
+					properties: {
+						total: { type: "integer", example: 50 },
+						type: { type: "string", example: "user" },
+						data: {
+							$ref: "#/components/schemas/Users"
+						}
+					}
+				}
+			}
 		},
 	},
 	actions: {
-		login(ctx) {
-			return ctx.broker.call("user.login", ctx.params)
-				.then(res => {
-					ctx.meta.$statusCode = 200;
-					return res;
-				});
+		login: {
+			async handler(ctx) {
+				const res = await ctx.broker.call("user.login", ctx.params);
+				ctx.meta.$statusCode = 200;
+				return res;
+			}
 		},
-		register(ctx) {
-			return ctx.broker.call("user.create", ctx.params)
-				.then(res => {
-					ctx.meta.$statusCode = 201;
-					ctx.meta.$responseHeaders = {
-						"Location": `/api/users/${res.id}`,
-					};
-					return res;
-				});
+		register: {
+			async handler(ctx) {
+				const res = await ctx.broker.call("user.create", ctx.params);
+				ctx.meta.$statusCode = 201;
+				ctx.meta.$responseHeaders = {
+					"Location": `/api/v1/users/${res.id}`,
+				};
+				return res;
+			}
 		},
 		list(ctx) {
 			return ctx.broker.call("search.list", { ...ctx.params, type: "user" });
@@ -33,55 +64,62 @@ module.exports = {
 			params: {
 				id: "string"
 			},
-			handler(ctx) {
-				return ctx.broker.call("search.get", { id: ctx.params.id, type: "user" })
-					.then(res => {
-						if (!res) {
-							// Not found
-							ctx.meta.$statusCode = 404;
-						} else if (res.active === false) {
-							// Gone
-							ctx.meta.$statusCode = 410;
-						}
-						return res;
-					});
+			async handler(ctx) {
+				const res = await ctx.broker.call("search.get", { id: ctx.params.id, type: "user" });
+				if (!res) {
+					// Not found
+					ctx.meta.$statusCode = 404;
+				} else if (res._active === false) {
+					// Gone
+					ctx.meta.$statusCode = 410;
+				}
+				return res;
 			}
 		},
 		patch: {
 			params: {
 				id: "string",
 			},
-			handler(ctx) {
+			async handler(ctx) {
 				const id = ctx.params.id;
 				delete ctx.params.id;
 				// check if entity exists
-				return this.broker.call("search.get", { id, type: "user" })
-					.then(user => {
-						if (!user) {
-							// Not found
-							ctx.meta.$statusCode = 404;
-							return;
-						} else if (user.active === false) {
-							// Gone
-							ctx.meta.$statusCode = 410;
-							return user;
-						}
-						const patches = toArray(ctx.params);
-						return this.broker.call("user.update", { user, patches });
-					});
+				const user = await this.broker.call("search.get", { id, type: "user" });
+				if (!user) {
+					// Not found
+					ctx.meta.$statusCode = 404;
+					return;
+				} else if (user._active === false) {
+					// Gone
+					ctx.meta.$statusCode = 410;
+					return user;
+				}
+				const patches = toArray(ctx.params);
+				const res = this.broker.call("user.update", { user, patches });
+				return res;
 			}
 		},
 		remove: {
 			params: {
 				id: "string"
 			},
-			handler(ctx) {
-				return ctx.broker.call("user.remove", { id: ctx.params.id })
-					.then(res => {
-						ctx.meta.$statusCode = 204;
-						return res;
-					});
+			async handler(ctx) {
+				const res = await ctx.broker.call("user.remove", { id: ctx.params.id });
+				ctx.meta.$statusCode = 204;
+				return res;
+			}
+		},
+		activate: {
+			params: {
+				id: "string"
+			},
+			async handler(ctx) {
+				const res = await ctx.broker.call("user.activate", { id: ctx.params.id });
+				ctx.meta.$statusCode = 204;
+				return res;
 			}
 		}
+	},
+	methods: {
 	}
 };

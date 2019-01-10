@@ -3,16 +3,14 @@
 // More info about options: https://moleculer.services/docs/0.13/broker.html#Broker-options
 module.exports = {
 	namespace: "mol",
-	nodeID: "gateway",
+	nodeID: "metrics",
 
 	logger: true,
 	logLevel: "info",
 	logFormatter: "default",
 	logObjectPrinter: null,
 
-	transporter: "tcp",
-
-	cacher: "Memory",
+	transporter: "TCP",
 
 	serializer: "JSON",
 
@@ -31,7 +29,7 @@ module.exports = {
 	heartbeatTimeout: 15,
 
 	tracking: {
-		enabled: true,
+		enabled: false,
 		shutdownTimeout: 5000,
 	},
 
@@ -73,10 +71,10 @@ module.exports = {
 
 	// Called after broker created.
 	created(broker) {
-    
+		
 	},
 
-	// Called after broker started.
+	// Called after broker starte.
 	started(broker) {
 
 	},

@@ -1,5 +1,5 @@
 "use strict";
-
+const _ = require("lodash");
 const { MoleculerClientError } = require("moleculer").Errors;
 
 const crypto 		= require("crypto");
@@ -7,13 +7,20 @@ const bcrypt 		= require("bcrypt");
 const jwt 			= require("jsonwebtoken");
 
 const userSchema = {
-	username: { type: "string", min: 2, pattern: /^[a-zA-Z0-9\-]+$/ },
+	username: { type: "string", min: 2, pattern: /^[a-zA-Z0-9-]+$/ },
 	password: { type: "string", min: 6 },
 	email: { type: "email" },
 	bio: { type: "string", optional: true },
 	image: { type: "string", optional: true },
 };
-const users = [];
+const users = [
+	{
+		username: "admin",
+		password: "admin",
+		email: "admin@real-app.com", 
+		bio: "admin system user",
+	}
+];
 
 module.exports = {
 	name: "user",
@@ -24,7 +31,7 @@ module.exports = {
 	 */
 	settings: {
 		/** Secret for JWT */
-		JWT_SECRET: process.env.JWT_SECRET || "jwt-conduit-secret",
+		JWT_SECRET: process.env.JWT_SECRET || "jwt-secret-key",
 
 		/** Public fields */
 		fields: ["username", "email", "bio", "image"],
@@ -63,10 +70,12 @@ module.exports = {
 				user.image = user.image || "https://www.gravatar.com/avatar/" + crypto.createHash("md5").update(user.email).digest("hex") + "?d=identicon";
 				user.createdAt = new Date();
 				users.push(user);
-				const publicUser = this.removePrivateProperties(ctx, {}, user);
+				const publicUser = this.removePrivateProperties(user);
 				this.logger.info({ notice: "new user is registered", identifier: user.username });
 				// emit user.registered event
 				this.broker.broadcast("user.registered", publicUser);
+				// send email
+				this.sendMail(ctx, user, "welcome");
 				return publicUser;
 			}
 		},
@@ -86,34 +95,31 @@ module.exports = {
 					password: { type: "string", min: 1 }
 				}}
 			},
-			handler(ctx) {
+			async handler(ctx) {
 				const { username, password } = ctx.params.user;
 
-				return this.Promise.resolve()
-					.then(() => users.find(u => u.username === username))
-					.then(user => {
-						if (!user) {
-							this.logger.warn("username is unknown");
-							return this.Promise.reject(new MoleculerClientError("login or password is invalid!", 401));
-						}
+				await this.Promise.resolve();
+				let user = await users.find(u => u.username === username);
+				if (!user) {
+					this.logger.warn("username is unknown");
+					return this.Promise.reject(new MoleculerClientError("login or password is invalid!", 401));
+				}
 
-						return bcrypt.compare(password, user.password).then(res => {
-							if (!res) {
-								this.logger.warn("Invalid password");
-								return Promise.reject(new MoleculerClientError("login or password is invalid!", 401));
-							}
+				const match = await bcrypt.compare(password, user.password);
+				if (!match) {
+					this.logger.warn("Invalid password");
+					return Promise.reject(new MoleculerClientError("login or password is invalid!", 401));
+				}
 							
-							// Transform user entity (remove password and all protected fields)
-							return this.removePrivateProperties(ctx, {}, user);
-						})
-							.then(user => this.transformEntity(user, true, ctx.meta.token))
-							.then(response => {
-								this.logger.info({ notice: "new user is connected", identifier: response.user.username });
-								// emit user.connected event
-								this.broker.broadcast("user.connected", response.user);
-								return user;
-							});
-					});
+				// Transform user entity (remove password and all protected fields)
+				user = this.removePrivateProperties(user);
+				const response = await this.transformEntity(user, true, ctx.meta.token);
+				this.logger.info({ notice: "new user is connected", identifier: response.user.username });
+				// emit user.connected event
+				this.broker.broadcast("user.connected", response.user);
+				return {
+					token: await this.getToken(user)
+				};
 			}
 		},
 
@@ -133,8 +139,8 @@ module.exports = {
 			params: {
 				token: "string"
 			},
-			handler(ctx) {
-				return new this.Promise((resolve, reject) => {
+			async handler(ctx) {
+				const decoded = await new this.Promise((resolve, reject) => {
 					jwt.verify(ctx.params.token, this.settings.JWT_SECRET, (err, decoded) => {
 						if (err)
 							return reject(err);
@@ -142,11 +148,9 @@ module.exports = {
 						resolve(decoded);
 					});
 
-				})
-					.then(decoded => {
-						if (decoded.id)
-							return this.getById(decoded.id);
-					});
+				});
+				if (decoded.id)
+					return this.getById(decoded.id);
 			}
 		},
 
@@ -170,39 +174,28 @@ module.exports = {
 					image: { type: "string", optional: true },
 				}}
 			},
-			handler(ctx) {
+			async handler(ctx) {
 				const newData = ctx.params.user;
-				return this.Promise.resolve()
-					.then(() => {
-						if (newData.username)
-							return users.find(u => u.username === newData.username)
-								.then(found => {
-									if (found && newData.username !== ctx.meta.user.username)
-										return Promise.reject(new MoleculerClientError("You must only update your account", 403));
-								});
-					})
-					.then(() => {
-						if (newData.email)
-							return users.find(u => u.email === newData.email)
-								.then(found => {
-									if (found && newData.username !== ctx.meta.user.username)
-										return Promise.reject(new MoleculerClientError("You must only update your account", 403));
-								});
-					})
-					.then(() => {
-						newData.updatedAt = new Date();
-						users.push(newData);
-						return newData;
-					})
-					.then(doc => this.removePrivateProperties(ctx, {}, doc))
-					.then(user => this.transformEntity(user, true, ctx.meta.token))
-					.then(response => {
-						this.logger.info({ notice: "user have been updated", identifier: response.user.username });
-						// emit user.connected event
-						this.broker.broadcast("user.updated", response.user);
-						return response.user;
-					});
-
+				if (newData.username) {
+					const found = await users.find(u => u.username === newData.username);
+					if (found && newData.username !== ctx.meta.user.username) {
+						return Promise.reject(new MoleculerClientError("You must only update your account", 403));
+					}
+				}
+				if (newData.email) {
+					const found = await users.find(u => u.email === newData.email);
+					if (found && newData.username !== ctx.meta.user.username) {
+						return Promise.reject(new MoleculerClientError("You must only update your account", 403));
+					}
+				}
+				newData.updatedAt = new Date();
+				users.push(newData);
+				const publicUser = await this.removePrivateProperties(newData);
+				const response = await this.transformEntity(publicUser, true, ctx.meta.token);
+				this.logger.info({ notice: "user have been updated", identifier: response.user.username });
+				// emit user.connected event
+				this.broker.broadcast("user.updated", response.user);
+				return response.user;
 			}
 		},
 
@@ -224,100 +217,48 @@ module.exports = {
 				if (!user) return;
 				this.logger.info({ notice: "Remove user", id });
 				// TODO implement some business logic here
-				user.active = false;
+				user._active = false;
 				// emit user.removed event
 				this.broker.broadcast("user.removed", { id });
-				const publicUser = this.removePrivateProperties(ctx, {}, user);
-				return { ...publicUser, mode: "memory", from: "user" };
+				const publicUser = this.removePrivateProperties(user);
+				return { ...publicUser };
 			}
 		},
-
+    
 		/**
-		 * Get a user profile.
+		 * Activate a new user
 		 * 
 		 * @actions
+		 * @param {string} id - User identifier
 		 * 
-		 * @param {String} username - Username
-		 * @returns {Object} User entity
+		 * @returns {Object} Activated user
 		 */
-		profile: {
-			cache: {
-				keys: ["#token", "username"]
-			},
+		activate: {
 			params: {
-				username: { type: "string" }
+				id: "string"
 			},
 			handler(ctx) {
-				return users.find(u => u.username === newData.username)
-					.then(user => {
-						if (!user)
-							return this.Promise.reject(new MoleculerClientError("User not found!", 404));
-
-						return this.removePrivateProperties(ctx, {}, user);
-					})
-					.then(user => this.transformProfile(ctx, user, ctx.meta.user));
+				const id = ctx.params.id;
+				const user = users.find(u => u.username = id);
+				if (!user) return;
+				this.logger.info({ notice: "Activate user", id });
+				// TODO implement some business logic here
+				user._active = true;
+				// emit user.activated event
+				this.broker.broadcast("user.activated", { id });
+				const publicUser = this.removePrivateProperties(user);
+				return { ...publicUser };
 			}
 		},
-
-		/**
-		 * Follow a user
-		 * Auth is required!
-		 * 
-		 * @actions
-		 * 
-		 * @param {String} username - Followed username
-		 * @returns {Object} Current user entity
-		 */
-		follow: {
-			auth: "required",
-			params: {
-				username: { type: "string" }
-			},
-			handler(ctx) {
-				return users.find(u => u.username === newData.username)
-					.then(user => {
-						if (!user)
-							return this.Promise.reject(new MoleculerClientError("User not found!", 404));
-
-						return ctx.call("follows.add", { user: ctx.meta.user.username.toString(), follow: user.username.toString() })
-							.then(() => this.removePrivateProperties(ctx, {}, user));
-					})
-					.then(user => this.transformProfile(ctx, user, ctx.meta.user));
-			}
-		},	
-
-		/**
-		 * Unfollow a user
-		 * Auth is required!
-		 * 
-		 * @actions
-		 * 
-		 * @param {String} username - Unfollowed username
-		 * @returns {Object} Current user entity
-		 */
-		unfollow: {
-			auth: "required",
-			params: {
-				username: { type: "string" }
-			},
-			handler(ctx) {
-				return users.find(u => u.username === newData.username)
-					.then(user => {
-						if (!user)
-							return this.Promise.reject(new MoleculerClientError("User not found!", 404));
-
-						return ctx.call("follows.delete", { user: ctx.meta.user.username.toString(), follow: user.username.toString() })
-							.then(() => this.removePrivateProperties(ctx, {}, user));
-					})
-					.then(user => this.transformProfile(ctx, user, ctx.meta.user));
-			}
-		}		
 	},
 
 	/**
 	 * Methods
 	 */
 	methods: {
+		async getToken(user) {
+			return await this.generateJWT({ ...user });
+		},
 		/**
 		 * Generate a JWT token from user entity
 		 * 
@@ -329,7 +270,7 @@ module.exports = {
 			exp.setDate(today.getDate() + 60);
 
 			return jwt.sign({
-				id: user.username,
+				sub: user.username,
 				username: user.username,
 				exp: Math.floor(exp.getTime() / 1000)
 			}, this.settings.JWT_SECRET);
@@ -342,7 +283,6 @@ module.exports = {
 		 * @param {Boolean} withToken 
 		 */
 		validateEntity(user) {
-      
 			return { user };
 		},
 
@@ -357,32 +297,7 @@ module.exports = {
 				if (withToken)
 					user.token = token || this.generateJWT(user);
 			}
-
 			return { user };
-		},
-
-		/**
-		 * Transform returned user entity as profile.
-		 * 
-		 * @param {Context} ctx
-		 * @param {Object} user 
-		 * @param {Object?} loggedInUser 
-		 */
-		transformProfile(ctx, user, loggedInUser) {
-			//user.image = user.image || "https://www.gravatar.com/avatar/" + crypto.createHash("md5").update(user.email).digest("hex") + "?d=identicon";
-			user.image = user.image || "https://static.productionready.io/images/smiley-cyrus.jpg";
-
-			if (loggedInUser) {
-				return ctx.call("follows.has", { user: loggedInUser.username.toString(), follow: user.username.toString() })
-					.then(res => {
-						user.following = res;
-						return { profile: user };
-					});
-			}
-
-			user.following = false;
-
-			return { profile: user };
 		},
 		/**
      * Remove password and protected fields
@@ -391,9 +306,9 @@ module.exports = {
      * @param {Object} param1 
      * @param {Object} user 
      */
-		removePrivateProperties(ctx, {}, user) {
+		removePrivateProperties(user) {
 			return {
-				id: user.username,
+				_id: user.username,
 				username: user.username,
 				email: user.email,
 				bio: user.bio,
@@ -408,16 +323,30 @@ module.exports = {
 		getById(username) {
 			return users.find(u => username === u.username);
 		},
+		/**
+		 * Send email to the user email address
+		 *
+		 * @param {Context} ctx
+		 * @param {Object} user
+		 * @param {String} template
+		 * @param {Object?} data
+		 */
+		async sendMail(ctx, user, template, data) {
+			try {
+				return await ctx.call("mail.send", {
+					to: user.email,
+					template,
+					data: {...data, user}
+				}, { retries: 3, timeout: 5000 });
+
+			} catch(err) {
+				/* istanbul ignore next */
+				this.logger.error("Send mail error!", err);
+				/* istanbul ignore next */
+				throw err;
+			}
+		},
 	},
 
-	events: {
-		"cache.clean.users"() {
-			if (this.broker.cacher)
-				this.broker.cacher.clean(`${this.name}.*`);
-		},
-		"cache.clean.follows"() {
-			if (this.broker.cacher)
-				this.broker.cacher.clean(`${this.name}.*`);
-		}
-	}	
+	events: {}
 };

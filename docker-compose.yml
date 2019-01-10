@@ -1,27 +1,64 @@
 version: '3'
 services:
-  nats:
-    image: nats-streaming
-    hostname: nats
+  maildev:
+    image: djfarrelly/maildev
     ports:
-      - "4222:4222"
-      - "8222:8222"
-    restart: on-failure
+      - "1080:80"
+      - "1025:25"
+  mongo:
+    image: "mongo"
+    ports:
+     - "27017:27017"
+  redis:
+    image: "redis"
+    ports:
+     - "6379:6379"
+  kafka:
+    image: "landoop/fast-data-dev"
+    environment:
+    - ADV_HOST=127.0.0.1
+    - SAMPLEDATA=0
+    - RUNTESTS=0
+    - FORWARDLOGS=0
+    ports:
+      - "2181:2181"
+      - "3030:3030"
+      - "8081:8081"
+      - "8082:8082"
+      - "9092:9092"
+
+  mail:
+    build: mail
+    env_file: docker-compose.env
+    depends_on:
+      - maildev
+    
   gateway:
     build: gateway
-    environment:
-      - TRANSPORT_URL=nats://nats:4222
+    env_file: docker-compose.env
     ports:
       - "3000:3000"
-  db:
-    build: db
-    environment:
-      - TRANSPORT_URL=nats://nats:4222
+
+  event-store:
+    build: event-store
+    env_file: docker-compose.env
+
   search:
     build: search
-    environment:
-      - TRANSPORT_URL=nats://nats:4222
+    env_file: docker-compose.env
+
   entity:
-    build: domain-entity
-    environment:
-      - TRANSPORT_URL=nats://nats:4222
+    build: entity
+    env_file: docker-compose.env
+
+  user:
+    build: user
+    env_file: docker-compose.env
+    depends_on:
+      - mail
+
+volumes:
+  data:
+    driver: local
+  db:
+    driver: local

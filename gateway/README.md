@@ -29,3 +29,17 @@ npm run lint
 ```bash
 $ docker-compose up -d --build
 ```
+
+## OpenAPI Swagger UI
+To offer OpenAPI Swagger UI integration, you need to modify package.json.
+Change the following line until moleculer-web master was realeased :
+
+```json
+"moleculer-web": "git+ssh://git@github.com/moleculerjs/moleculer-web.git",
+```
+
+```bash
+npm i
+```
+
+Warn : This modification is not compatible with docker build!

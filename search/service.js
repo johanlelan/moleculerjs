@@ -22,7 +22,7 @@ module.exports = {
 		"entity.removed"(payload) {
 			const document = documents[payload.id];
 			if (document) {
-				document.active = false;
+				document._active = false;
 				this.logger.info({ notice: "Unindex item", id: payload.id });
 				this.broker.broadcast("search.unindexed", payload.id);
 			}
@@ -54,9 +54,17 @@ module.exports = {
 		"user.removed"(payload) {
 			const user = users[payload.id];
 			if (user) {
-				user.active = false;
+				user._active = false;
 				this.logger.info({ notice: "Unindex user", id: payload.id });
 				this.broker.broadcast("search.user.unindexed", payload.id);
+			}
+		},
+		"user.activated"(payload) {
+			const user = users[payload.id];
+			if (user) {
+				user._active = true;
+				this.logger.info({ notice: "Reindex user", id: payload.id });
+				this.broker.broadcast("search.user.indexed", payload.id);
 			}
 		}
 	},
@@ -70,12 +78,12 @@ module.exports = {
 			this.logger.info({ notice: `list all matching ${type}`, payload });
 			// emit search.query event
 			this.broker.broadcast("search.query", payload);
+			const data = Object.values(collection).filter(item => item._active !== false);
+			// TODO JLL: need to manage pagination
 			return { 
-				mode: "memory",
-				from: "search",
-				type,
-				total: Object.keys(collection).length,
-				data: Object.values(collection).filter(item => item.active !== false)
+				_type: type,
+				total: data.length,
+				data,
 			};
 		},
 		get(ctx) {
@@ -87,14 +95,14 @@ module.exports = {
 			if (!document) {
 				this.broker.broadcast("search.notFound", id);
 				return null;
-			} else if (!document.active) {
+			} else if (!document._active) {
 				this.broker.broadcast("search.gone", document);
 				return document;
 			}
-			this.logger.info({ notice: `get ${type} by id`, identifier: id });
+			this.logger.info({ notice: `get ${type} by id`, id });
 			// emit search.found event
 			this.broker.broadcast("search.found", document);
-			return { ...document, from: "search" };
+			return { ...document };
 		},
 	},
 	started() {

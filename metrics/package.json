@@ -1,5 +1,5 @@
 {
-  "name": "user",
+  "name": "metrics",
   "version": "1.0.0",
   "description": "My Moleculer microservice",
   "scripts": {
@@ -21,11 +21,8 @@
     "moleculer-repl": "^0.5.0"
   },
   "dependencies": {
-    "ajv": "^6.6.2",
-    "bcrypt": "^3.0.3",
-    "jsonwebtoken": "^8.4.0",
     "moleculer": "^0.13.0",
-    "nats": "^1.0.0"
+    "moleculer-console-tracer": "^0.2.0"
   },
   "engines": {
     "node": ">= 8.x.x"

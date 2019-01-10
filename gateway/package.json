@@ -22,13 +22,17 @@
   },
   "dependencies": {
     "compression": "^1.7.3",
+    "cookie": "^0.3.1",
+    "helmet": "^3.15.0",
     "ioredis": "^3.2.2",
     "kafka-node": "^3.0.1",
     "lodash.pick": "^4.4.0",
     "lodash.values": "^4.3.0",
     "moleculer": "^0.13.0",
-    "moleculer-web": "^0.8.0",
-    "nats": "^1.0.1"
+    "moleculer-mail": "^1.2.1",
+    "moleculer-web": "^0.8.5",
+    "nats": "^1.0.1",
+    "swagger-ui-dist": "^3.20.4"
   },
   "engines": {
     "node": ">= 8.x.x"

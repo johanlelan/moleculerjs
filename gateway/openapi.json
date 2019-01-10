@@ -1,0 +1,27 @@
+{
+    "openapi": "3.0.1",
+    "info": {
+        "title": "gateway API Documentation",
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "http://localhost:3000/api/v1",
+            "description": "Development server"
+        }
+    ],
+    "components": {},
+    "paths": {},
+    "security": [],
+    "tags": [
+        {
+            "name": "user",
+            "description": "Users operations"
+        },
+        {
+            "name": "items",
+            "description": "Items operations"
+        }
+    ],
+    "externalDocs": []
+}

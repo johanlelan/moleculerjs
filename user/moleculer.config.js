@@ -10,7 +10,7 @@ module.exports = {
 	logFormatter: "default",
 	logObjectPrinter: null,
 
-	transporter: process.env.TRANSPORT_URL || "Nats",
+	transporter: "tcp",
 
 	cacher: "Memory",
 

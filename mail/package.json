@@ -1,5 +1,5 @@
 {
-  "name": "db",
+  "name": "mail",
   "version": "1.0.0",
   "description": "My Moleculer microservice",
   "scripts": {
@@ -7,7 +7,7 @@
     "start": "moleculer-runner service.js",
     "ci": "jest --watch",
     "test": "jest --coverage",
-    "lint": "eslint ."
+    "lint": "eslint services"
   },
   "keywords": [
     "microservices",
@@ -21,8 +21,9 @@
     "moleculer-repl": "^0.5.0"
   },
   "dependencies": {
-    "fast-json-patch": "^2.0.7",
+    "handlebars": "^4.0.12",
     "moleculer": "^0.13.0",
+    "moleculer-mail": "^1.2.1",
     "nats": "^1.0.0"
   },
   "engines": {
