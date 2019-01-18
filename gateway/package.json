@@ -39,11 +39,19 @@
     "node": ">= 8.x.x"
   },
   "jest": {
-    "coverageDirectory": "../coverage",
+    "coverageDirectory": ".coverage",
+    "coverageReporters": [
+      "text",
+      "html"
+    ],
+    "collectCoverageFrom": [
+      "!**/node_modules/**",
+      "mixins/*.js",
+      "services/*.js"
+    ],
     "testEnvironment": "node",
-    "rootDir": "./services",
     "roots": [
-      "../test"
+      "./"
     ]
   }
 }

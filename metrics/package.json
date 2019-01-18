@@ -29,11 +29,18 @@
     "node": ">= 8.x.x"
   },
   "jest": {
-    "coverageDirectory": "../coverage",
+    "coverageDirectory": ".coverage",
+    "coverageReporters": [
+      "text",
+      "html"
+    ],
+    "collectCoverageFrom": [
+      "!**/node_modules/**",
+      "service.js"
+    ],
     "testEnvironment": "node",
-    "rootDir": "./services",
     "roots": [
-      "../test"
+      "./"
     ]
   }
 }
