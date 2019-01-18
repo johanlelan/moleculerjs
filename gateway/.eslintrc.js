@@ -15,13 +15,13 @@ module.exports = {
     },
     "rules": {
         "indent": [
-            "warn",
-            "tab",
-            { "SwitchCase": 1 }
+          "warn", 
+          2,
+          { "SwitchCase": 1 }
         ],
         "quotes": [
             "warn",
-            "double"
+            "single"
         ],
         "semi": [
             "error",

@@ -9,10 +9,21 @@ services:
     image: "mongo"
     ports:
      - "27017:27017"
+  elasticsearch:
+    image: "elasticsearch:5-alpine"
+    ports:
+     - "9200:9200"
+     - "9300:9300"
   redis:
     image: "redis"
     ports:
      - "6379:6379"
+  nats:
+    image: "nats"
+    ports:
+     - "4222:4222"
+     - "6222:6222"
+     - "8222:8222"
   kafka:
     image: "landoop/fast-data-dev"
     environment:
@@ -56,6 +67,10 @@ services:
     env_file: docker-compose.env
     depends_on:
       - mail
+
+  metrics:
+    build: metrics
+    env_file: docker-compose.env
 
 volumes:
   data:

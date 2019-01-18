@@ -16,7 +16,7 @@ module.exports = {
     "rules": {
         "indent": [
             "warn",
-            "tab",
+            2,
             { "SwitchCase": 1 }
         ],
         "quotes": [

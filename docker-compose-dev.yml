@@ -5,19 +5,38 @@ services:
     ports:
       - "1080:80"
       - "1025:25"
-  
-  kafka:
-    image: spotify/kafka
-    hostname: kafka
-    extra_hosts:
-      - "moby:127.0.0.1"
-    environment:
-      ADVERTISED_HOST: 172.16.9.47
-      TOPICS: items,search
-      ADVERTISED_PORT: 9092
+  nats:
+    image: "nats"
     ports:
-      - "9092:9092"
+     - "4222:4222"
+     - "6222:6222"
+     - "8222:8222"
+  mongo:
+    image: "mongo"
+    ports:
+     - "27017:27017"
+  elasticsearch:
+    image: "elasticsearch:5-alpine"
+    ports:
+     - "9200:9200"
+     - "9300:9300"
+  redis:
+    image: "redis"
+    ports:
+     - "6379:6379"
+  kafka:
+    image: "landoop/fast-data-dev"
+    environment:
+    - ADV_HOST=127.0.0.1
+    - SAMPLEDATA=0
+    - RUNTESTS=0
+    - FORWARDLOGS=0
+    ports:
       - "2181:2181"
+      - "3030:3030"
+      - "8081:8081"
+      - "8082:8082"
+      - "9092:9092"
 
 #  nats:
 #    image: nats-streaming

@@ -1,8 +1,10 @@
 "use strict";
-
+const sinon = require("sinon");
 const { ServiceBroker } = require("moleculer");
 const { ValidationError } = require("moleculer").Errors;
+
 const TestService = require("../../service");
+const mixin = require("../../mixins/kafka-streams.mixin")();
 
 describe("Test 'event-store' service", () => {
 	let broker = new ServiceBroker();
@@ -15,13 +17,13 @@ describe("Test 'event-store' service", () => {
 	});
 	describe("Test 'event-store.getAllEvents' action", () => {
 		it("should return an empty list of events", () => {
-			expect(broker.call("event-store.getAllEvents", { id: "unknown" })).resolves.toEqual([]);
+			expect(broker.call("event-store.getAllEvents", { aggregate: "any", id: "unknown" })).resolves.toEqual([]);
 		});
 		it("should reject an ValidationError", () => {
 			expect(broker.call("event-store.getAllEvents")).rejects.toBeInstanceOf(ValidationError);
 		});
 	});
-	describe("Test event-store append to stream", () => {
+	describe.only("Test event-store append to stream", () => {
 		it("should append a broker event to event-stream", (done) => {
 			const aggregateId = "aggregateId";
 			const event = {
@@ -31,9 +33,9 @@ describe("Test 'event-store' service", () => {
 				title: "I am an event from moleculer broker",
 			};
 			broker.broadcast("append.tested", event);
-			// wait 1s before check DB insertion
+			// wait 1s before checking DB insertion
 			setTimeout(async () => {
-				const events = await broker.call("event-store.getAllEvents", { id: aggregateId });
+				const events = await broker.call("event-store.getAllEvents", { aggregate: "append", id: aggregateId });
 				expect(events).toHaveLength(1);
 				expect(events[0]).toHaveProperty("aggregateId", aggregateId);
 				done();

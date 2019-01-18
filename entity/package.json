@@ -16,7 +16,7 @@
   "author": "",
   "devDependencies": {
     "eslint": "^5.0.1",
-    "jest": "^23.3.0",
+    "jest": "^23.6.0",
     "jest-cli": "^23.3.0",
     "moleculer-repl": "^0.5.0"
   },
@@ -33,11 +33,18 @@
     "node": ">= 8.x.x"
   },
   "jest": {
-    "coverageDirectory": "../coverage",
+    "coverageDirectory": ".coverage",
+    "coverageReporters": [
+      "text",
+      "html"
+    ],
+    "collectCoverageFrom": [
+      "!**/node_modules/**",
+      "service.js"
+    ],
     "testEnvironment": "node",
-    "rootDir": "./services",
     "roots": [
-      "../test"
+      "./"
     ]
   }
 }

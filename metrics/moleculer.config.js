@@ -10,7 +10,7 @@ module.exports = {
 	logFormatter: "default",
 	logObjectPrinter: null,
 
-	transporter: "TCP",
+	transporter: "tcp",
 
 	serializer: "JSON",
 
@@ -58,7 +58,7 @@ module.exports = {
 	validation: true,
 	validator: null,
 
-	metrics: false,
+	metrics: true,
 	metricsRate: 1,
 
 	internalServices: true,
