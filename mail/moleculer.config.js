@@ -31,7 +31,7 @@ module.exports = {
 	heartbeatTimeout: 15,
 
 	tracking: {
-		enabled: false,
+		enabled: true,
 		shutdownTimeout: 5000,
 	},
 

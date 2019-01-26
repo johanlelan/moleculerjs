@@ -27,6 +27,21 @@
     },
     {
       "type": "node",
+      "name": "JEST search",
+      "request": "launch",
+      "program": "${workspaceFolder}/search/node_modules/jest/bin/jest",
+      "args": [
+        "--runInBand",
+        "--detectOpenHandles"
+      ],
+      "env": {
+      },
+      "cwd": "${workspaceFolder}/search",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "type": "node",
       "name": "(event-store)vscode-jest-tests",
       "request": "launch",
       "program": "${workspaceFolder}/event-store/node_modules/jest/bin/jest",

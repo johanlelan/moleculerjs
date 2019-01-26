@@ -53,10 +53,14 @@ services:
   event-store:
     build: event-store
     env_file: docker-compose.env
+    depends_on: 
+     - kafka
 
   search:
     build: search
     env_file: docker-compose.env
+    depends_on: 
+     - elasticsearch
 
   entity:
     build: entity
