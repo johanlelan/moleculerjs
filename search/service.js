@@ -1,19 +1,6 @@
 const _ = require("lodash");
 const ESService = require("moleculer-elasticsearch");
 
-const documents = {};
-const users = {};
-const connectedUsers = {};
-
-const getCollection = (type) => {
-  switch(type) {
-    case "user":
-      return users;
-    default:
-      return documents;
-  }
-};
-
 module.exports = {
   name: "search",
   mixins: [ESService],
@@ -109,10 +96,9 @@ module.exports = {
     async list(ctx) {
       const payload = ctx.params.query;
       const type = ctx.params.type;
-      const collection = getCollection(type);
       // validate input
       // filter search engine
-      const res = await this.find(collection, payload);
+      const res = await this.find(type, payload);
       const data = _.get(res, "hits.hits", []);
       this.logger.info({ notice: `list all matching ${type}`, payload });
       const result = {
@@ -127,9 +113,7 @@ module.exports = {
     async getById(ctx) {
       const id = ctx.params.id;
       const type = ctx.params.type;
-      // get from search engine by identifier
-      const collection = getCollection(type);
-      const result = await this.find(collection, {
+      const result = await this.find(type, {
         match: { id }
       });
       const document = _.get(result, "hits.hits.0._source");
