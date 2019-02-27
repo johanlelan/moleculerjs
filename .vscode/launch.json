@@ -5,6 +5,17 @@
   "version": "0.2.0",
   "configurations": [
     {
+			"type": "node",
+			"request": "launch",
+			"name": "event-store - Moleculer-runner",
+			"program": "${workspaceFolder}/event-store/node_modules/moleculer/bin/moleculer-runner",
+      "cwd": "${workspaceFolder}/event-store",
+      "args": [
+        "--hot",
+        "services"
+      ]
+		},
+    {
       "type": "node",
       "request": "attach",
       "name": "Attach by Process ID",

@@ -1,6 +1,7 @@
 const crypto = require("crypto");
 const assert = require("assert");
 const {KafkaStreams} = require("kafka-streams");
+const kafka = require("kafka-node");
 
 const config = require("./kafka.config")();
 
@@ -32,13 +33,13 @@ module.exports = function() {
         assert.ok(origin, `Every event should have an origin : ${content}`);
         const event = {};
         event.id = crypto.randomBytes(16).toString("hex");
-        event.timestamp = content.timestamp;
+        event.timestamp = content._timestamp || Date.now();
         event.origin = origin;
         event.name = name;
         event.aggregateId = content._id || content.id;
         event.author = author;
         event.data = content;
-        event.version = "1";
+        event.version = 1;
         return event;
       },
       /**
@@ -53,14 +54,17 @@ module.exports = function() {
         return new Promise((resolve, reject) => {
           try {
             const eventStream = this.es.getKStream(null);
-            eventStream.to(topic);
+            eventStream.to(topic, "auto", "buffer", 1, 0, (err) => console.error(err));
             eventStream.start().then(() => {
               const message = {
-                value: event,
+                id: event.aggregateId,
                 key: event.aggregateId,
-                topic
+                payload: event,
+                timestamp: event.timestamp,
+                version: event.version,
+                type: eventName,
               };
-              eventStream.writeToStream(message);
+              eventStream.writeToStream(JSON.stringify(message));
               return event;
             }).then(event => {
               resolve(event);
@@ -77,25 +81,37 @@ module.exports = function() {
       readFromStream(aggregate, aggregateId) {
         const events = [];
         return new Promise((resolve, reject) => {
-          try {
-            const eventStream = this.es.getKStream(aggregate);
-            eventStream
-              .mapJSONConvenience() //buffer -> json
-              .mapWrapKafkaValue() //message.value -> value
-              .filter(message => {
-                return message.aggregateId === aggregateId;
-              })
-              .forEach((message) => {
-                // add message to result events
+          const client = new kafka.KafkaClient({ kafaHost: config.kafkaHost });
+          const offset = new kafka.Offset(client);
+          const topics = [{ topic: aggregate, partition: 0 }, { topic: aggregate, partition: 1 }];
+          const options = { autoCommit: false, fetchMaxWaitMs: 1000, fetchMaxBytes: 1024 * 1024, fromOffset: true };
+          client.on("ready", () => {
+            const consumer = new kafka.Consumer(client, topics, options);
+            consumer.on("message", function (message) {
+              if (message.aggregateId === aggregateId) {
                 events.push(message);
-              });
-            eventStream.createAndSetProduceHandler().on("delivered", () => {
-              resolve(events);
+              }
             });
-            eventStream.start();
-          } catch(err) {
-            reject(err);
-          }
+  
+            consumer.on("error", function (err) {
+              console.log("ERROR: " + err.toString());
+              reject(err);
+            });
+
+            /*
+            * If consumer get `offsetOutOfRange` event, fetch data from the smallest(oldest) offset
+            */
+            consumer.on("offsetOutOfRange", function (topic) {
+              topic.maxNum = 2;
+              offset.fetch([topic], function (err, offsets) {
+                if (err) {
+                  return console.error(err);
+                }
+                let min = Math.min.apply(null, offsets[topic.topic][topic.partition]);
+                consumer.setOffset(topic.topic, topic.partition, min);
+              });
+            });
+          });
         });
       },
       /**
