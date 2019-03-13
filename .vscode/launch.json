@@ -53,6 +53,21 @@
     },
     {
       "type": "node",
+      "name": "(mapper)vscode-jest-tests",
+      "request": "launch",
+      "program": "${workspaceFolder}/mapper/node_modules/jest/bin/jest",
+      "args": [
+        "--runInBand",
+        "--detectOpenHandles"
+      ],
+      "env": {
+      },
+      "cwd": "${workspaceFolder}/mapper",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "type": "node",
       "request": "launch",
       "name": "Client - Launch Program",
       "program": "${workspaceFolder}/client/client.js"

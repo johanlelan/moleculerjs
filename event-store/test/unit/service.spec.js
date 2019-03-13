@@ -42,7 +42,9 @@ describe("Test 'event-store' service", () => {
     MongoClient.connect = jest.fn(() => Promise.resolve(fakeConn));
   });
 
-  let broker = new ServiceBroker();
+  let broker = new ServiceBroker({
+    logger: false,
+  });
   broker.createService(TestService);
 
   beforeAll(() => broker.start());

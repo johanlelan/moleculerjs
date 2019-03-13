@@ -4,7 +4,9 @@ const { ServiceBroker } = require('moleculer');
 const TestService = require('../../services/users.service');
 
 describe('Test \'Users\' service', () => {
-  let broker = new ServiceBroker();
+  let broker = new ServiceBroker({
+    logger: false,
+  });
   broker.createService(TestService);
 
   beforeAll(() => broker.start());
