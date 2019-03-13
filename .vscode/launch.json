@@ -23,31 +23,16 @@
     },
     {
       "type": "node",
-      "name": "JEST entity",
+      "name": "(gateway)vscode-jest-tests",
       "request": "launch",
-      "program": "${workspaceFolder}/entity/node_modules/jest/bin/jest",
+      "program": "${workspaceFolder}/gateway/node_modules/jest/bin/jest",
       "args": [
         "--runInBand",
         "--detectOpenHandles"
       ],
       "env": {
       },
-      "cwd": "${workspaceFolder}/entity",
-      "console": "integratedTerminal",
-      "internalConsoleOptions": "neverOpen"
-    },
-    {
-      "type": "node",
-      "name": "JEST search",
-      "request": "launch",
-      "program": "${workspaceFolder}/search/node_modules/jest/bin/jest",
-      "args": [
-        "--runInBand",
-        "--detectOpenHandles"
-      ],
-      "env": {
-      },
-      "cwd": "${workspaceFolder}/search",
+      "cwd": "${workspaceFolder}/gateway",
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen"
     },

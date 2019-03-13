@@ -67,7 +67,7 @@ module.exports = {
         id: 'string'
       },
       async handler(ctx) {
-        const res = await ctx.broker.call('search.getById', { id: ctx.params.id, type: 'user' });
+        const res = await ctx.broker.call('search.get', { id: ctx.params.id, type: 'user' });
         if (!res) {
           // Not found
           ctx.meta.$statusCode = 404;

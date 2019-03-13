@@ -54,10 +54,10 @@ module.exports = {
       },
       async handler(ctx) {
         let res = undefined;
-        try {
-          // try from search engine
-          res = await ctx.broker.call('search.get', { id: ctx.params.id, type: 'items' });
-        } catch(err) {
+        // try from search engine
+        res = await ctx.broker.call('search.get', { id: ctx.params.id, type: 'items' });
+        // if search engine does not have item, it could be the index lapse time
+        if (!res) {
           // try from event-store
           res = await ctx.broker.call('event-store.getAllEvents', { id: ctx.params.id, aggregate: 'items' });
         }
@@ -78,14 +78,13 @@ module.exports = {
       async handler(ctx) {
         const id = ctx.params.id;
         delete ctx.params.id;
-        // check if entity exists
-        const item = await this.broker.call('search.get', { id, type: 'items' });
-        if (!item || item._active === false) {
+        const patches = toArray(ctx.params);
+        const item = await ctx.broker.call('entity.patch', { id, patches });
+        if (!item) {
           ctx.meta.$statusCode = 404;
           return null;
         }
-        const patches = toArray(ctx.params);
-        return ctx.broker.call('entity.patch', { id, patches });
+        return item;
       }
     },
     remove: {
