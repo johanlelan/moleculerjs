@@ -21,8 +21,10 @@
     "moleculer-repl": "^0.5.0"
   },
   "dependencies": {
+    "handlebars": "^4.1.0",
     "jsonpath": "^1.0.1",
-    "moleculer": "^0.13.0"
+    "moleculer": "^0.13.0",
+    "moment": "^2.24.0"
   },
   "engines": {
     "node": ">= 8.x.x"
@@ -35,7 +37,8 @@
     ],
     "collectCoverageFrom": [
       "!**/node_modules/**",
-      "service.js"
+      "service.js",
+      "lib/**"
     ],
     "testEnvironment": "node",
     "roots": [
